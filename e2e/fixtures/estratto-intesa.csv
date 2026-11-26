@@ -1,0 +1,14 @@
+Estratto conto corrente
+Periodo;01/10/2026 - 31/10/2026
+
+Data contabile;Data valuta;Descrizione;Importo;Categoria
+01/10/2026;01/10/2026;Accredito stipendio ottobre;2.450,00;Stipendio
+03/10/2026;03/10/2026;Pagamento POS Esselunga;-86,35;Alimentari
+05/10/2026;05/10/2026;Addebito affitto ottobre;-850,00;Casa
+08/10/2026;08/10/2026;Bolletta luce A2A;-62,10;Bollette
+08/10/2026;08/10/2026;Bar Centrale;-3,50;
+08/10/2026;08/10/2026;Bar Centrale;-3,50;
+;;;;
+12/10/2026;12/10/2026;Netflix;-12,99;Abbonamenti
+xx/10/2026;;Riga corrotta;-5,00;
+15/10/2026;15/10/2026;;-20,00;

@@ -1,0 +1,13 @@
+{
+  "applicationId": "INCOLLA-QUI-L-ID-DELL-APPLICAZIONE",
+  "privateKeyPath": "./INCOLLA-QUI-L-ID-DELL-APPLICAZIONE.pem",
+  "redirectUrl": "https://localhost/pfi-callback",
+  "port": 8787,
+  "allowedOrigins": [],
+  "research": {
+    "secUserAgent": "PFI personale nome.cognome@example.com",
+    "alphaVantageKey": "",
+    "finnhubKey": "",
+    "tiingoKey": ""
+  }
+}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Local-first: la pagina può connettersi solo alla propria origine e al bridge bancario locale (127.0.0.1). Nessun dato può essere inviato a terzi dal browser. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0d1511" />
+    <meta name="description" content="PFI – Personal Finance Intelligence: gestione delle finanze personali, interamente locale." />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>PFI · Personal Finance Intelligence</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>PFI richiede JavaScript.</noscript>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>
