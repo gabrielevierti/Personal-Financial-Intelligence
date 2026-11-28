@@ -25,7 +25,20 @@ export function useFinanceModel() {
   return useMemo(() => {
     if (!ds || !scheduled) return null;
     const conv = makeConverter(ds.settings);
-    const k = computeKpis(ds, period, { costBasis });
+
+    // Rileva TUTTI i giroconti tra conti propri (certi e non): da escludere da entrate/uscite.
+    // Un giroconto non è né un'entrata né un'uscita: il denaro resta tuo.
+    const allCandidates = links && transferMeta
+      ? detectTransfers(ds.transactions, ds.accounts, links, transferMeta.names, transferMeta.ignored)
+      : [];
+    const transferTxIds = new Set<string>();
+    for (const c of allCandidates) {
+      transferTxIds.add(c.outId);
+      transferTxIds.add(c.inId);
+    }
+    const pendingPairs = allCandidates.filter((c) => !c.certain).length;
+
+    const k = computeKpis(ds, period, { costBasis, excludeIds: transferTxIds });
     const ins = buildInsights(ds);
     const month = currentMonth();
     const statuses = budgetStatuses(ds.budgets, ds.transactions, month, conv);
@@ -44,7 +57,6 @@ export function useFinanceModel() {
     const projections = projectLiquidity(input);
     const catName = new Map(ds.categories.map((c) => [c.id, c.name]));
     const periodExpense = totalsByCategory(ds.transactions, period, 'expense', ds.categories, conv);
-    const pendingPairs = links && transferMeta ? detectTransfers(ds.transactions, ds.accounts, links, transferMeta.names, transferMeta.ignored).filter((c) => !c.certain).length : 0;
     const insights = financialInsights({
       currency: ds.settings.baseCurrency,
       liquidity: k.kpis.liquidity.value ?? 0,
@@ -62,6 +74,7 @@ export function useFinanceModel() {
       missingRates: [...conv.missing],
       positions: ds.assets.filter((a) => FINANCIAL_ASSET_TYPES.includes(a.type)).map((a) => ({ name: a.name, value: conv(assetValue(a), a.currency) })),
       pendingTransferPairs: pendingPairs,
+      pendingTransferAmount: 0,
       monthsOfData: ins.monthsOfData,
     });
     return {

@@ -39,6 +39,8 @@ export interface InsightInput {
   /** Valore delle singole posizioni (asset finanziari) per il rischio di concentrazione. */
   positions: Array<{ name: string; value: Cents }>;
   pendingTransferPairs: number;
+  /** Importo dei giroconti sospetti nel periodo (gonfiano entrate e uscite di pari importo). */
+  pendingTransferAmount: Cents;
   monthsOfData: number;
 }
 
@@ -147,10 +149,12 @@ export function financialInsights(i: InsightInput): FinancialInsight[] {
   if (i.pendingTransferPairs > 0)
     out.push({
       id: 'transfers',
-      priority: 'media',
+      priority: i.pendingTransferAmount > 0 ? 'alta' : 'media',
       title: `${i.pendingTransferPairs} possibili giroconti da confermare`,
-      reason: 'Finché non sono confermati, i bonifici tra i tuoi conti contano come entrate e uscite.',
-      data: [],
+      reason: i.pendingTransferAmount > 0
+        ? `Finché non sono confermati, i bonifici tra i tuoi conti gonfiano entrate e uscite di ${m(i.pendingTransferAmount)} ciascuna.`
+        : 'Finché non sono confermati, i bonifici tra i tuoi conti contano come entrate e uscite.',
+      data: i.pendingTransferAmount > 0 ? [`Importo giroconti sospetti: ${m(i.pendingTransferAmount)}`] : [],
       suggestion: 'Conferma o scarta le coppie proposte nella pagina Movimenti.',
       href: '#/transactions',
     });

@@ -42,7 +42,8 @@ describe('riconoscimento trasferimenti (puro)', () => {
     const out = tx({ id: 'o', accountId: 'fineco', date: '2026-11-10', amount: -2000, description: 'Pagamento' });
     const inn = tx({ id: 'i', accountId: 'tr', date: '2026-11-11', amount: 2000, type: 'income', description: 'Rimborso' });
     expect(detectTransfers([out, inn], accounts, links)[0].certain).toBe(false);
-    expect(detectTransfers([out, { ...inn, amount: 2001 }], accounts, links)).toHaveLength(0);
+    // importo oltre la tolleranza fuzzy (5%): non deve essere riconosciuto
+    expect(detectTransfers([out, { ...inn, amount: 3000 }], accounts, links)).toHaveLength(0);
     expect(detectTransfers([out, { ...inn, accountId: 'fineco' }], accounts, links)).toHaveLength(0);
     expect(detectTransfers([out, { ...inn, date: '2026-11-20' }], accounts, links)).toHaveLength(0);
     expect(detectTransfers([out, inn], accounts, links, [], new Set(['o|i']))).toHaveLength(0);

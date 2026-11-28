@@ -175,7 +175,7 @@ describe('KPI', () => {
 
 describe('financial insights', () => {
   it('fondo di emergenza sotto obiettivo con dati a supporto, ordinati per priorità', () => {
-    const r = financialInsights({ currency: 'EUR', liquidity: 200000, netWorth: 1000000, avgMonthlyExpense: 100000, avgMonthlyIncome: 150000, emergencyTargetMonths: 6, savingsRate: 0.05, forecast: null, trends: [], recurring: [], budgets: [], uncategorizedExpense: 0, totalExpense: 100000, missingRates: [], positions: [{ name: 'AAPL', value: 300000 }], pendingTransferPairs: 0, monthsOfData: 12 });
+    const r = financialInsights({ currency: 'EUR', liquidity: 200000, netWorth: 1000000, avgMonthlyExpense: 100000, avgMonthlyIncome: 150000, emergencyTargetMonths: 6, savingsRate: 0.05, forecast: null, trends: [], recurring: [], budgets: [], uncategorizedExpense: 0, totalExpense: 100000, missingRates: [], positions: [{ name: 'AAPL', value: 300000 }], pendingTransferPairs: 0, pendingTransferAmount: 0, monthsOfData: 12 });
     expect(r[0]).toMatchObject({ id: 'emergency-fund', priority: 'alta' });
     expect(r[0].data.join(' ')).toContain('Mancano');
     expect(r.map((i) => i.id)).toContain('low-savings');

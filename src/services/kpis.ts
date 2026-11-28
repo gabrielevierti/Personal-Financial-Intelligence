@@ -32,13 +32,14 @@ export interface KpiResult {
   coverageFrom: ISODate | null;
 }
 
-export function computeKpis(ds: DataSet, period: Period, opts: NetWorthOptions & { today?: ISODate; months?: number } = {}): KpiResult {
+export function computeKpis(ds: DataSet, period: Period, opts: NetWorthOptions & { today?: ISODate; months?: number; excludeIds?: Set<string> } = {}): KpiResult {
   const today = opts.today ?? todayISO();
   const conv = makeConverter(ds.settings);
+  const ex = opts.excludeIds;
   const nwOpts: NetWorthOptions = { costBasis: opts.costBasis, valuations: ds.valuations };
-  const cur = summarize(ds.transactions, period, conv);
+  const cur = summarize(ds.transactions, period, conv, ex);
   const prevP = previousPeriod(period);
-  const prev = summarize(ds.transactions, prevP, conv);
+  const prev = summarize(ds.transactions, prevP, conv, ex);
   const now = netWorthSnapshot(ds.accounts, ds.transactions, ds.assets, conv, nwOpts);
   const coverageFrom = dataCoverageStart(ds.accounts, ds.transactions);
   const prevEnd = addDays(period.start, -1);
@@ -51,7 +52,7 @@ export function computeKpis(ds: DataSet, period: Period, opts: NetWorthOptions &
     const end = monthEnd(m);
     return coverageFrom && end >= coverageFrom ? netWorthSnapshot(ds.accounts, ds.transactions, ds.assets, conv, { ...nwOpts, asOf: end }) : null;
   });
-  const flows = monthlySeries(ds.transactions, months, conv);
+  const flows = monthlySeries(ds.transactions, months, conv, ex);
   const avgExp = averageMonthlyExpense(ds.transactions, conv, 6, lastMonth);
   const prevAvgExp = averageMonthlyExpense(ds.transactions, conv, 6, monthOf(prevEnd));
 

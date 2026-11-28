@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Cents, Transaction } from '../../types';
 import type { DataSet } from '../../services/reports';
-import { createTransaction, createTransfer, updateTransaction, updateTransfer } from '../../services/repository';
+import { createTransaction, createTransfer, markAsTransfer, unmarkTransfer, updateTransaction, updateTransfer } from '../../services/repository';
 import { errorMessage, useToast } from '../../hooks/useToast';
 import { todayISO } from '../../utils/date';
 import { FALLBACK_CATEGORY } from '../../database/seed';
@@ -65,19 +65,35 @@ export function TransactionForm({ ds, tx, initialMode, defaultAccountId, onClose
     setBusy(true);
     try {
       if (mode === 'transfer') {
-        if (crossCurrency && (toAmount === null || toAmount <= 0)) throw new Error("Indica l'importo accreditato nella valuta del conto di destinazione.");
-        const input = { fromAccountId: fromId, toAccountId: toId, date, amount, toAmount: crossCurrency ? (toAmount ?? undefined) : undefined, description, notes };
-        if (tx?.transferId) await updateTransfer(tx.transferId, input);
-        else await createTransfer(input);
-        toast.success(isEdit ? 'Trasferimento aggiornato.' : 'Trasferimento registrato.');
+        if (isEdit && tx && tx.type !== 'transfer') {
+          // Cambio tipo: da entrata/uscita a giroconto
+          await markAsTransfer(tx.id);
+          toast.success('Movimento convertito in giroconto: non conterà più tra entrate e uscite.');
+        } else if (isEdit && tx?.transferId) {
+          if (crossCurrency && (toAmount === null || toAmount <= 0)) throw new Error("Indica l'importo accreditato nella valuta del conto di destinazione.");
+          const input = { fromAccountId: fromId, toAccountId: toId, date, amount, toAmount: crossCurrency ? (toAmount ?? undefined) : undefined, description, notes };
+          await updateTransfer(tx.transferId, input);
+          toast.success('Trasferimento aggiornato.');
+        } else {
+          if (crossCurrency && (toAmount === null || toAmount <= 0)) throw new Error("Indica l'importo accreditato nella valuta del conto di destinazione.");
+          const input = { fromAccountId: fromId, toAccountId: toId, date, amount, toAmount: crossCurrency ? (toAmount ?? undefined) : undefined, description, notes };
+          await createTransfer(input);
+          toast.success('Trasferimento registrato.');
+        }
       } else {
-        const input = { accountId, date, description, amount, type: mode, categoryId, notes };
-        if (tx) await updateTransaction(tx.id, input);
-        else await createTransaction(input);
-        if (tx && categoryChanged && applySimilar) {
-          const n = await applyCategoryToMerchant(description, mode, categoryId);
-          toast.success(n ? `Movimento aggiornato. Categoria applicata ad altri ${n} movimenti simili e ricordata per il futuro.` : 'Movimento aggiornato. La categoria verrà usata per questo esercente anche in futuro.');
-        } else toast.success(isEdit ? 'Movimento aggiornato.' : 'Movimento registrato.');
+        if (isEdit && tx && tx.type === 'transfer') {
+          // Cambio tipo: da giroconto a entrata/uscita
+          await unmarkTransfer(tx.id);
+          toast.success(`Movimento ripristinato come ${mode === 'income' ? 'entrata' : 'uscita'}.`);
+        } else {
+          const input = { accountId, date, description, amount, type: mode, categoryId, notes };
+          if (tx) await updateTransaction(tx.id, input);
+          else await createTransaction(input);
+          if (tx && categoryChanged && applySimilar) {
+            const n = await applyCategoryToMerchant(description, mode, categoryId);
+            toast.success(n ? `Movimento aggiornato. Categoria applicata ad altri ${n} movimenti simili e ricordata per il futuro.` : 'Movimento aggiornato. La categoria verrà usata per questo esercente anche in futuro.');
+          } else toast.success(isEdit ? 'Movimento aggiornato.' : 'Movimento registrato.');
+        }
       }
       onClose();
     } catch (err) {
@@ -105,21 +121,19 @@ export function TransactionForm({ ds, tx, initialMode, defaultAccountId, onClose
       }
     >
       <form id="tx-form" className="form" onSubmit={submit} noValidate>
-        {!(isEdit && tx?.type === 'transfer') && (
-          <div className="segmented" role="group" aria-label="Tipo di movimento">
-            <button type="button" className="seg-expense" aria-pressed={mode === 'expense'} onClick={() => switchMode('expense')}>
-              Uscita
+        <div className="segmented" role="group" aria-label="Tipo di movimento">
+          <button type="button" className="seg-expense" aria-pressed={mode === 'expense'} onClick={() => switchMode('expense')}>
+            Uscita
+          </button>
+          <button type="button" className="seg-income" aria-pressed={mode === 'income'} onClick={() => switchMode('income')}>
+            Entrata
+          </button>
+          {ds.accounts.length >= 2 && (
+            <button type="button" aria-pressed={mode === 'transfer'} onClick={() => switchMode('transfer')}>
+              Giroconto
             </button>
-            <button type="button" className="seg-income" aria-pressed={mode === 'income'} onClick={() => switchMode('income')}>
-              Entrata
-            </button>
-            {!isEdit && ds.accounts.length >= 2 && (
-              <button type="button" aria-pressed={mode === 'transfer'} onClick={() => switchMode('transfer')}>
-                Trasferimento
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {mode === 'transfer' ? (
           <>

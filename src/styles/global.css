@@ -2812,6 +2812,19 @@ button.nav-group svg.rot {
 .dash-month-head h2 { font-size: var(--fs-md); margin: 0; }
 .dash-flows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .dash-flows > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dash-transfer-warn {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--accent-yellow, #d19a00) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-yellow, #d19a00) 30%, transparent);
+  border-radius: var(--radius, 8px);
+  font-size: var(--fs-sm);
+  color: var(--fg);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.dash-transfer-warn:hover { border-color: var(--accent-yellow, #d19a00); }
 .dash-forecast { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-muted); }
 .dash-forecast summary { cursor: pointer; font-size: var(--fs-md); }
 .dash-forecast-body { margin-top: 12px; }

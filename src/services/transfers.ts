@@ -80,22 +80,40 @@ export function detectTransfers(
   const eligible = txs.filter((t) => t.type !== 'transfer' && !t.pending && !t.transferId && currencyOf.has(t.accountId));
   const outs = eligible.filter((t) => t.amount < 0);
   const ins = eligible.filter((t) => t.amount > 0);
+  // Indice per importo esatto e fuzzy (entro il 5%): per trovare anche giroconti con piccole differenze
+  // (es. sposti 576 €, investi, rivendi con +1%, riporti 580 €)
   const insByAmount = new Map<number, Transaction[]>();
   for (const t of ins) {
     const list = insByAmount.get(t.amount) ?? [];
     list.push(t);
     insByAmount.set(t.amount, list);
   }
+  /** Trova entrate che corrispondono a un'uscita: prima esatte, poi fuzzy (±5%, max 100 €). */
+  function findMatchingIns(outAmount: number): Array<{ tx: Transaction; exact: boolean }> {
+    const target = -outAmount; // positivo
+    const results: Array<{ tx: Transaction; exact: boolean }> = [];
+    // Corrispondenze esatte
+    for (const t of insByAmount.get(target) ?? []) results.push({ tx: t, exact: true });
+    // Corrispondenze fuzzy: scansiona importi simili
+    const tolerance = Math.min(Math.abs(outAmount) * 0.05, 10000); // 5% o max 100 €
+    for (const [amt, txs] of insByAmount) {
+      if (amt === target) continue; // già incluse
+      if (Math.abs(amt - target) <= tolerance) {
+        for (const t of txs) results.push({ tx: t, exact: false });
+      }
+    }
+    return results;
+  }
 
   const all: TransferCandidate[] = [];
   for (const o of outs) {
-    for (const i of insByAmount.get(-o.amount) ?? []) {
+    for (const { tx: i, exact } of findMatchingIns(o.amount)) {
       if (i.accountId === o.accountId || i.currency !== o.currency) continue;
       const gap = daysBetween(o.date, i.date);
       if (gap < -1 || gap > MAX_TRANSFER_DAYS) continue;
       if (ignored.has(`${o.id}|${i.id}`)) continue;
       const reasons: string[] = [];
-      let score = 0;
+      let score = exact ? 0 : -0.5; // penalità per fuzzy
       let certain = false;
       const inIban = ibanOf.get(i.accountId);
       const outIban = ibanOf.get(o.accountId);
@@ -120,6 +138,11 @@ export function detectTransfers(
       }
       if (gap === 0) score += 1;
       else if (gap <= 2) score += 0.5;
+      if (!exact) {
+        reasons.push('importo simile (±5%)');
+        // fuzzy match non è mai "certo" da solo, serve almeno un'altra prova
+        if (!certain && score < 1) score = Math.max(score, 0.3);
+      }
       if (!reasons.length) reasons.push('stesso importo, date vicine');
       all.push({ outId: o.id, inId: i.id, score: score - Math.abs(gap) * 0.1, certain, reasons });
     }

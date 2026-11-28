@@ -291,6 +291,35 @@ export async function linkAsTransfer(outId: string, inId: string): Promise<strin
   return transferId;
 }
 
+/** Marca un singolo movimento come giroconto (escluso da entrate/uscite) senza bisogno di una coppia. */
+export async function markAsTransfer(txId: string): Promise<void> {
+  await db.transaction('rw', db.transactions, async () => {
+    const t = await db.transactions.get(txId);
+    if (!t) throw new ValidationError(['Movimento non trovato.']);
+    if (t.type === 'transfer') return; // già marcato
+    await db.transactions.update(txId, { type: 'transfer', categoryId: null, updatedAt: nowStamp() });
+  });
+}
+
+/** Ripristina un movimento marcato come giroconto al suo tipo originale (income/expense). */
+export async function unmarkTransfer(txId: string): Promise<void> {
+  await db.transaction('rw', db.transactions, async () => {
+    const t = await db.transactions.get(txId);
+    if (!t) throw new ValidationError(['Movimento non trovato.']);
+    if (t.type !== 'transfer') return;
+    // Se era linkato a un'altra transazione, scollega anche quella
+    if (t.transferId) {
+      const other = (await db.transactions.where('transferId').equals(t.transferId).toArray()).find((x) => x.id !== txId);
+      if (other) {
+        const otherType = other.amount > 0 ? 'income' : 'expense';
+        await db.transactions.update(other.id, { type: otherType, transferId: undefined, counterAccountId: undefined, updatedAt: nowStamp() });
+      }
+    }
+    const type = t.amount > 0 ? 'income' : 'expense';
+    await db.transactions.update(txId, { type, transferId: undefined, counterAccountId: undefined, updatedAt: nowStamp() });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Importazione
 // ---------------------------------------------------------------------------

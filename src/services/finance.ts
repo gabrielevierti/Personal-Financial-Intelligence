@@ -173,7 +173,7 @@ export interface PeriodSummary {
   avgMonthlyIncome: Cents;
 }
 
-export function summarize(transactions: Transaction[], period: Period, conv: Converter): PeriodSummary {
+export function summarize(transactions: Transaction[], period: Period, conv: Converter, excludeIds?: Set<string>): PeriodSummary {
   let income = 0;
   let expense = 0;
   let invested = 0;
@@ -181,6 +181,7 @@ export function summarize(transactions: Transaction[], period: Period, conv: Con
   for (const t of transactions) {
     if (!inPeriod(t, period)) continue;
     if (t.type === 'transfer') continue;
+    if (excludeIds?.has(t.id)) continue;
     invested += conv(investedOf(t), t.currency);
     const f = flowOf(t);
     income += conv(f.income, t.currency);
@@ -257,12 +258,13 @@ export interface MonthPoint {
   savingRate: number | null;
 }
 
-export function monthlySeries(transactions: Transaction[], months: ISOMonth[], conv: Converter): MonthPoint[] {
+export function monthlySeries(transactions: Transaction[], months: ISOMonth[], conv: Converter, excludeIds?: Set<string>): MonthPoint[] {
   const idx = new Map(months.map((m, i) => [m, i]));
   const inc = new Array<number>(months.length).fill(0);
   const exp = new Array<number>(months.length).fill(0);
   for (const t of transactions) {
     if (t.type === 'transfer') continue;
+    if (excludeIds?.has(t.id)) continue;
     const i = idx.get(monthOf(t.date));
     if (i === undefined) continue;
     const f = flowOf(t);
